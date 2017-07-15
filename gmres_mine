@@ -1,0 +1,49 @@
+function [xx,j,tol1tol1] = gmres_mine(A,b) 
+%计算稀疏矩阵
+[~,N] = size(A); 
+aa = norm(A,1); 
+u =1e-15 ;
+ 
+ 
+bb = norm(b); 
+r0 = b; 
+r0r0 = norm(r0); 
+ 
+v(:,1) = r0/r0r0; 
+H =zeros(0,0); 
+ 
+for j =1:N 
+    w = A*v(:,j); 
+    for i =1:j 
+        h(i,j) = v(:,i)'*w; 
+        w = w - h(i,j)*v(:,i); 
+    end; 
+    h(j+1,j) = norm(w); 
+    v(:,j+1) = w/h(j+1,j); 
+    rr = r0r0*[1;zeros(j,1)]; 
+    if j == 1 
+        H = [h(j,j);h(j+1,j)]; 
+        V = v(:,j); 
+    else 
+        H = [H,h(1:j,j);zeros(1,j-1),h(j+1,j)]; 
+        V = [V,v(:,j)]; 
+    end; 
+     
+    [Q1,R] = qr(H); 
+    gk = Q1'*rr; 
+    R = R(1:j,:); 
+    gk = gk(1:j,:); 
+    yk = R\gk; 
+    %if mod(j,10)==0 
+    x(:,j) = V*yk; 
+    %tol1(j) = h(j+1,j)*abs(y(j)); 
+    tol(j) = norm(b - A*x(:,j))/(aa*norm(x(:,j))+bb); 
+    if tol(j)< u 
+%         disp('收敛退出'); 
+        break; 
+    end; 
+    %end; 
+end; 
+xx = x(:,j); 
+tol1tol1 = tol(j); 
+save tol; 
