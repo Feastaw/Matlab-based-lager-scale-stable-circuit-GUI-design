@@ -1,0 +1,38 @@
+# A sub-programm to transform the cell to txt.
+
+function status = cellwtxt(txtname,celldata,num)
+% 函数功能是把元包结构按原来的形式写入txt文件。
+% 调用格式 cellwtxt('txtname','celldata,num')
+% 参数解释 ：txtname ----- 存储元包数组的txt文件名,其为字符串，并请正确命名。
+%           celldata ----  元包数组。
+%             num ---- 第几份数据
+%            status ---- 写入是否成功的状态
+if nargin ~= 3
+    disp('函数调用格式错误')
+    return
+end
+if ~ischar(txtname)
+    disp(['txt文件名命名错误，其应为合法的字符串形式的文件名']);
+    return
+end
+
+ID = fopen(txtname,'at');
+str = strcat('第',num2str(num),'份数据结果:');
+fprintf(ID,strcat(str,'    ( 实部 虚部 / 模 角 ) (支路电流 支路电压 节点电压) \n'));
+[m,n] = size(celldata);
+for i = 1 : m
+    for k = 1 : n
+        [rows,~] = size(celldata{i,k});
+        if rows > 1
+            for j = 1 : rows
+                status = fprintf(ID,'%f\t',celldata{i,k}(j,:));
+                fprintf(ID,'\n');
+            end
+        else
+            fprintf(ID,'%s\t',celldata{i,k});
+        end  
+        fprintf(ID,'\n');
+    end
+    fprintf(ID,'\n');
+end
+fclose(ID);
