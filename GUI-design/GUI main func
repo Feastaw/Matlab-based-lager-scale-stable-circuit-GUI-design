@@ -1,0 +1,1380 @@
+# The main function of GUI-design.
+
+function varargout = GUI_design(varargin)
+% GUI_DESIGN MATLAB code for GUI_design.fig
+%      GUI_DESIGN, by itself, creates a new GUI_DESIGN or raises the existing
+%      singleton*.
+%
+%      H = GUI_DESIGN returns the handle to a new GUI_DESIGN or the handle to
+%      the existing singleton*.
+%
+%      GUI_DESIGN('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in GUI_DESIGN.M with the given input arguments.
+%
+%      GUI_DESIGN('Property','Value',...) creates a new GUI_DESIGN or raises the
+%      existing singleton*.  Starting from the left, property value pairs are
+%      applied to the GUI before GUI_design_OpeningFcn gets called.  An
+%      unrecognized property name or invalid value makes property application
+%      stop.  All inputs are passed to GUI_design_OpeningFcn via varargin.
+%
+%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
+%      instance to run (singleton)".
+%
+% See also: GUIDE, GUIDATA, GUIHANDLES
+
+% Edit the above text to modify the response to help GUI_design
+
+% Last Modified by GUIDE v2.5 01-Jun-2016 19:29:43
+
+% Begin initialization code - DO NOT EDIT
+gui_Singleton = 0;
+gui_State = struct('gui_Name',       mfilename, ...
+                   'gui_Singleton',  gui_Singleton, ...
+                   'gui_OpeningFcn', @GUI_design_OpeningFcn, ...
+                   'gui_OutputFcn',  @GUI_design_OutputFcn, ...
+                   'gui_LayoutFcn',  [] , ...
+                   'gui_Callback',   []);
+if nargin && ischar(varargin{1})
+    gui_State.gui_Callback = str2func(varargin{1});
+end
+
+if nargout
+    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
+else
+    gui_mainfcn(gui_State, varargin{:});
+end
+% End initialization code - DO NOT EDIT
+
+end
+% --- Executes just before GUI_design is made visible.
+
+function GUI_design_OpeningFcn(hObject, eventdata, handles, varargin)
+% This function has no output args, see OutputFcn.
+% hObject    handle to figure
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% varargin   command line arguments to GUI_design (see VARARGIN)
+
+% Choose default command line output for GUI_design
+handles.output = hObject;
+
+% Update handles structure
+guidata(hObject, handles);
+
+% UIWAIT makes GUI_design wait for user response (see UIRESUME)
+% uiwait(handles.figure1);
+
+% get(gcf,'userdata',w) = get(handles.edit_pinlv,'String');
+% handles.get(gcf,'userdata',w) = get(gcf,'userdata',w);
+% guidata(hObject,handles);
+%-----------------------------------------------------------------------------------------------------------
+%初始化数据，建立单元数组data，用于存储所有用户数据；
+%------------------------------------------------------------------------------------------------------------
+%数据编码表
+%------------------------------------------------------------------------------------------------------------
+%data数组下属的单元分别为circuit_data,output_data,system_data;
+%-----------------------------------------------------------------------------------------------------------
+%circiut_data:管理用户输入的参数列表
+%circuit_data.X:存储所有输入的数据；
+%circuit_data.frequeny:存储用户输入频率参数
+%------------------------------------------------------------------------------------------------------------
+%output_data:管理所有输出数据
+%output_data{0} = [支路电流，支路电压，节点电压，支路电功率，模角式电流，模角式电压，
+%模角式节压，模角式功率]
+%--------------------------------------------------------------------------------------------------------
+%system_data:管理系统间通信
+%system_data.trigger:管理控件间的触发信号，其中trigger(1,1)为频率模式的选择，trigger(1,2)为输出电路参数的选择,trigger(1,3)为输出模式的选择
+%system_data.counter:管理pop按钮的页面数，其中counter(1,1)管理左边的pop按钮,counter(1,2)管理右边的pop按钮
+%system_data.status:管理系统运行状态，其中status(1,1)管理导出按钮状态，status(1,2)管理导出结果状态，status(1,3)管理数据导入按钮状态，...
+% status(1,4)管理频率导入按钮状态
+%----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+%设置图形名称
+set(gcf,'numbertitle','off','name','大规模稳态电路分析');
+
+data = cell(1,3);%建立data数据容器
+
+circuit_data.X = cell(0);%建立电路数据结构体
+circuit_data.frequency = [];
+data{1,1} = circuit_data;
+
+output_data = cell(0);%建立输出数据单元矩阵
+data{1,2} = output_data;
+
+system_data.trigger = zeros(1,3);%建立系统按钮单元数组
+system_data.counter = [1,1];%翻页计数器
+system_data.status = [0,0,0,0];%三个状态分别是导出按钮状态，导出成功状态，数据导入按钮状态，频率导入状态按钮
+
+system_data.trigger(1,1) = 2; %频率选择
+system_data.trigger(1,2) = 1;%输出选择
+system_data.trigger(1,3) = 1;%模式选择
+
+data{1,3} = system_data;
+set(0,'userdata',data);%将数据载入根对象的‘userdata’中
+%-------------------------------------------------------------------------------------------------------
+h1_table = uitable('parent',handles.uipanel_shuru,'columnname',{'支路号','元件类型','始节点',...
+    '末节点','参数1','参数2','控制支路'},'position',[13,10,270,260],'columneditable',[false,true,true,true,true,true,true],'fontsize',12);
+handles.h1_table = h1_table;
+guidata(hObject,handles);
+h2_table = uitable('parent',handles.uipanel_shuchu,'position',[13,10,270,280],'columnname',...
+    {'代数式'},'columneditable',false,'columnwidth',{200},'fontsize',12);
+handles.h2_table = h2_table;
+guidata(hObject,handles);
+
+end
+% --- Outputs from this function are returned to the command line.
+
+function varargout = GUI_design_OutputFcn(hObject, eventdata, handles) 
+% varargout  cell array for returning output args (see VARARGOUT);
+% hObject    handle to figure
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Get default command line output from handles structure
+varargout{1} = handles.output;
+
+
+end
+% --- Executes on button press in pushbutton_jisuan.
+
+function pushbutton_jisuan_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_jisuan (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+%获取基本信息
+data = get(0,'userdata');
+circuit_data = data{1,1};
+
+X = circuit_data.X;
+w = circuit_data.frequency;
+num = length(X);
+len = length(w);
+
+oput_data = cell(1,num); %建立输出矩阵
+
+disp_data = cell(1,6); 
+
+%建立数据存储矩阵
+for k = 1 : num
+    eval(['disp_',num2str(k),'=','cell(1,6);'])    
+    eval(['oput_data{1,k}=','disp_',num2str(k),';'])%oput_data{1,k} = disp_1; 
+end
+
+for k = 1 : num
+    temp = X{1,k};f = w(1,k);
+    [disp_data{1,1},disp_data{1,2},disp_data{1,3},disp_data{1,4},disp_data{1,5},disp_data{1,6}] = analysis(temp,f);
+    oput_data{1,k} = disp_data;
+end
+
+%更新信息
+data{1,2} = oput_data;
+set(0,'userdata',data);
+
+%设置使能
+
+%产生弹出式菜单项
+str = {'-请选择页码--'};
+str1 = '第';
+str2 = '页';
+
+for k = 2 : num + 1
+    str{k,1} = strcat(str1,num2str(k-1),str2);
+end
+set(handles.oput_pop,'string',str);
+
+set(handles.radiobutton_daishushi,'value',1);
+set(handles.pushbutton_dianya,'Backgroundcolor',[0.94,0.94,0.94],'value',0);
+set(handles.pushbutton_jiediandianya,'Backgroundcolor',[0.94,0.94,0.94],'value',0);
+set(handles.h2_table,'data',disp_data{1,1});
+set(handles.pushbutton_dianliu,'enable','on','backgroundcolor','w','value',1);
+set(handles.pushbutton_dianya,'enable','on');
+set(handles.pushbutton_jiediandianya,'enable','on');
+set(handles.radiobutton_daishushi,'enable','on');
+set(handles.radiobutton_mojiaoshi,'enable','on');
+set(handles.oput_pop,'enable','on');
+set(handles.oput_dijiye,'enable','on');
+set(handles.oput_gongjiye,'enable','on');
+set(handles.menu_oput,'enable','on');
+if num == 1
+    set(handles.oput_r,'enable','off');
+else
+    set(handles.oput_r,'enable','on');
+end
+
+set(handles.oput_dijiye,'String',num2str(1));
+set(handles.oput_gongjiye,'String',num2str(num));
+
+% set(hObject,'enable','off');
+% --- Executes on button press in pushbutton_dianliu.
+
+end
+
+function pushbutton_dianliu_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_dianliu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%设置按钮高亮
+set(hObject,'backgroundcolor','w');
+set(handles.pushbutton_dianya,'backgroundcolor',[0.94,0.94,0.94]);
+set(handles.pushbutton_jiediandianya,'backgroundcolor',[0.94,0.94,0.94]);
+
+%载入数据
+data = get(0,'userdata');
+oput_data = data{1,2};
+system_data = data{1,3};
+trigger = system_data.trigger;
+trigger(1,2) = 1;
+
+counter = system_data.counter(1,2);
+disp_data = oput_data{1,counter};
+
+%更新data数据
+system_data.trigger = trigger;
+data{1,3} = system_data;
+set(0,'userdata',data);
+
+set(handles.h2_table,'visible','off');
+
+if trigger(1,3) == 1
+    set(handles.h2_table,'data',disp_data{1,1});
+end
+
+if trigger(1,3) == 2
+    set(handles.h2_table,'data',disp_data{1,4});
+end
+ 
+set(handles.h2_table,'visible','on');
+
+set(handles.menu_oput,'enable','on');
+
+%控制其他的模式选项
+set(handles.pushbutton_dianya,'value',0);
+set(handles.pushbutton_jiediandianya,'value',0);
+
+end
+% --- Executes on button press in pushbutton_dianya.
+
+function pushbutton_dianya_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_dianya (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%设置按钮高亮
+set(hObject,'backgroundcolor','w');
+set(handles.pushbutton_dianliu,'backgroundcolor',[0.94,0.94,0.94]);
+set(handles.pushbutton_jiediandianya,'backgroundcolor',[0.94,0.94,0.94]);
+
+%载入数据
+data = get(0,'userdata');
+oput_data = data{1,2};
+system_data = data{1,3};
+trigger = system_data.trigger;
+trigger(1,2) = 2;
+
+counter = system_data.counter(1,2);
+disp_data = oput_data{1,counter};
+
+%更新data数据
+system_data.trigger = trigger;
+data{1,3} = system_data;
+set(0,'userdata',data);
+
+set(handles.h2_table,'visible','off');
+
+if trigger(1,3) == 1
+    set(handles.h2_table,'data',disp_data{1,2});
+end
+
+if trigger(1,3) == 2
+    set(handles.h2_table,'data',disp_data{1,5});
+end
+
+set(handles.h2_table,'visible','on');
+
+set(handles.menu_oput,'enable','on');
+
+%设置其他模式选项
+set(handles.pushbutton_dianliu,'value',0);
+set(handles.pushbutton_jiediandianya,'value',0);
+
+end
+% --- Executes on button press in pushbutton_jiediandianya.
+
+function pushbutton_jiediandianya_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_jiediandianya (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%设置按钮高亮
+set(hObject,'backgroundcolor','w');
+set(handles.pushbutton_dianya,'backgroundcolor',[0.94,0.94,0.94]);
+set(handles.pushbutton_dianliu,'backgroundcolor',[0.94,0.94,0.94]);
+
+%载入数据
+data = get(0,'userdata');
+oput_data = data{1,2};
+system_data = data{1,3};
+trigger = system_data.trigger;
+trigger(1,2) = 3;
+
+counter = system_data.counter(1,2);
+disp_data = oput_data{1,counter};
+
+%更新data数据
+system_data.trigger = trigger;
+data{1,3} = system_data;
+set(0,'userdata',data);
+
+set(handles.h2_table,'visible','off');
+
+if trigger(1,3) == 1
+    set(handles.h2_table,'data',disp_data{1,3});
+end
+
+if trigger(1,3) == 2
+    set(handles.h2_table,'data',disp_data{1,6});
+end
+
+set(handles.h2_table,'visible','on');
+
+set(handles.menu_oput,'enable','on');
+
+%设置其他选项
+set(handles.pushbutton_dianya,'value',0);
+set(handles.pushbutton_dianliu,'value',0);
+
+end
+
+function edit_zhilu_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_zhilu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_zhilu as text
+%        str2double(get(hObject,'String')) returns contents of edit_zhilu as a double
+
+end
+% --- Executes during object creation, after setting all properties.
+
+function edit_zhilu_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_zhilu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+end
+
+function edit_jiedian_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_jiedian (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_jiedian as text
+%        str2double(get(hObject,'String')) returns contents of edit_jiedian as a double
+
+end
+% --- Executes on button press in jiedian
+
+function edit_jiedian_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_jiedian (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+end
+% --- Executes on button press in jiaopinlv.
+
+function jiaopinlv_Callback(hObject, eventdata, handles)
+% hObject    handle to jiaopinlv (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of jiaopinlv
+data = get(0,'userdata');
+system_data = data{1,3};
+system_data.trigger(1,1) = 2;
+
+data{1,3} = system_data;
+set(0,'userdata',data);
+
+end
+% --- Executes on button press in pinlv.
+
+function pinlv_Callback(hObject, eventdata, handles)
+% hObject    handle to pinlv (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+data = get(0,'userdata');
+system_data = data{1,3};
+system_data.trigger(1,1) = 1;
+
+data{1,3} = system_data;
+set(0,'userdata',data);
+
+
+% Hint: get(hObject,'Value') returns toggle state of pinlv
+end
+% --- Executes on button press in radiobutton_mojiaoshi.
+
+function radiobutton_mojiaoshi_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton_mojiaoshi (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton_mojiaoshi
+%计算模角式
+data = get(0,'userdata');
+system_data = data{1,3};
+oput_data = data{1,2};
+counter = system_data.counter(1,2);
+trigger = system_data.trigger;
+trigger(1,3) = 2;
+disp_data = oput_data{1,counter};
+
+%更新指针
+system_data.trigger = trigger;
+data{1,3} = system_data;
+set(0,'userdata',data);
+
+%输出数据
+
+set(handles.h2_table,'columnwidth',{150,150},'columnname',{'模量','幅角'},'visible','off');
+
+if trigger(1,2) == 1
+    set(handles.h2_table,'data',disp_data{1,4});
+    set(handles.pushbutton_dianliu,'backgroundcolor','w');
+    set(handles.pushbutton_dianya,'backgroundcolor',[0.94,0.94,0.94]);
+    set(handles.pushbutton_jiediandianya,'backgroundcolor',[0.94,0.94,0.94]);
+end
+
+if trigger(1,2) == 2
+    set(handles.h2_table,'data',disp_data{1,5});
+    set(handles.pushbutton_dianliu,'backgroundcolor',[0.94,0.94,0.94]);
+    set(handles.pushbutton_dianya,'backgroundcolor','w');
+    set(handles.pushbutton_jiediandianya,'backgroundcolor',[0.94,0.94,0.94]);
+end
+
+if trigger(1,2) == 3
+    set(handles.h2_table,'data',disp_data{1,6});
+    set(handles.pushbutton_dianliu,'backgroundcolor',[0.94,0.94,0.94]);
+    set(handles.pushbutton_dianya,'backgroundcolor',[0.94,0.94,0.94]);
+    set(handles.pushbutton_jiediandianya,'backgroundcolor','w');
+end
+
+set(handles.h2_table,'visible','on');
+
+end
+% --- Executes on button press in radiobutton_daishushi.
+
+function radiobutton_daishushi_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton_daishushi (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+data = get(0,'userdata');
+system_data = data{1,3};
+oput_data = data{1,2};
+counter = system_data.counter(1,2);
+trigger = system_data.trigger;
+trigger(1,3) = 1;
+disp_data = oput_data{1,counter};
+
+%更新指针
+system_data.trigger = trigger;
+data{1,3} = system_data;
+set(0,'userdata',data);
+
+%输出数据
+set(handles.h2_table,'columnname',{'代数式'},'visible','off');
+
+if trigger(1,2) == 1
+    set(handles.h2_table,'data',disp_data{1,1});
+    set(handles.pushbutton_dianliu,'backgroundcolor','w');
+    set(handles.pushbutton_dianya,'backgroundcolor',[0.94,0.94,0.94]);
+    set(handles.pushbutton_jiediandianya,'backgroundcolor',[0.94,0.94,0.94]);
+end
+
+if trigger(1,2) == 2
+    set(handles.h2_table,'data',disp_data{1,2});
+    set(handles.pushbutton_dianliu,'backgroundcolor',[0.94,0.94,0.94]);
+    set(handles.pushbutton_dianya,'backgroundcolor','w');
+    set(handles.pushbutton_jiediandianya,'backgroundcolor',[0.94,0.94,0.94]);
+end
+
+if trigger(1,2) == 3
+    set(handles.h2_table,'data',disp_data{1,3});
+    set(handles.pushbutton_dianliu,'backgroundcolor',[0.94,0.94,0.94]);
+    set(handles.pushbutton_dianya,'backgroundcolor',[0.94,0.94,0.94]);
+    set(handles.pushbutton_jiediandianya,'backgroundcolor','w');
+end
+
+set(handles.h2_table,'visible','on');
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton_daishushi
+
+end
+% --- Execute on button press in radiobutton_daishushi
+
+function menu_doc_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_doc (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+end
+% --- Establish menu called menu_doc
+
+function menu_open_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_open (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%载入用户数据
+data = get(0,'userdata');
+system_data = data{1,3};
+status = system_data.status(1,3);
+
+[FileName,PathName] = uigetfile({'*.*';'*.txt';'*.xlsx'},'打开文件','multiselect','on');
+
+if ~isequal(FileName,0) 
+    %重复载入，初始化数据
+    if status == 1
+        %数据更新
+        circuit_data.X = cell(0);%建立电路数据结构体
+        circuit_data.frequency = [];
+        data{1,1} = circuit_data;
+
+        output_data = cell(0);%建立输出数据单元矩阵
+        data{1,2} = output_data;
+
+        system_data.trigger = zeros(1,3);%建立系统按钮单元数组
+        system_data.counter = [1,1];%输出计数器变，输入计数器不变
+        system_data.status = [0,0,0,0];%三个状态分别是导出按钮状态，导出成功状态，数据导入按钮状态，频率导入状态,计算状态
+        system_data.trigger(1,1) = 2; %频率选择
+        system_data.trigger(1,2) = 1;%输出选择
+        system_data.trigger(1,3) = 1;%模式选择
+
+        data{1,3} = system_data;
+        set(0,'userdata',data);%将数据载入根对象的‘userdata’中
+        %-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        %更新使能
+        h1_table = uitable('parent',handles.uipanel_shuru,'columnname',{'支路号','元件类型','始节点',...
+            '末节点','参数1','参数2','控制支路'},'position',[13,10,270,260],'columneditable',[false,true,true,true,true,true,true],'fontsize',12);
+        handles.h1_table = h1_table;
+        guidata(hObject,handles);
+        h2_table = uitable('parent',handles.uipanel_shuchu,'position',[13,10,270,280],'columnname',...
+            {'代数式'},'columneditable',false,'columnwidth',{200},'fontsize',12);
+        handles.h2_table = h2_table;
+        guidata(hObject,handles);
+
+        set(handles.pushbutton_dianliu,'backgroundcolor',[0.94 0.94 0.94]);
+        set(handles.pushbutton_dianya,'backgroundcolor',[0.94 0.94 0.94]);
+        set(handles.pushbutton_jiediandianya,'backgroundcolor',[0.94 0.94 0.94]);
+        set(handles.menu_oput,'enable','off');
+        set(handles.edit_zhilu,'enable','off');
+        set(handles.edit_jiedian,'enable','off');
+        set(handles.pinlv,'enable','off');
+        set(handles.jiaopinlv,'enable','off');
+        set(handles.pushbutton_pinlv,'enable','off');
+        set(handles.input_l,'enable','off');
+        set(handles.input_dijiye,'enable','off');
+        set(handles.input_gongjiye,'enable','off');
+        set(handles.input_r,'enable','on');
+        set(handles.input_pop,'enable','off');
+        set(handles.pushbutton_jisuan,'enable','off');
+        set(handles.pushbutton_dianliu,'enable','off');
+        set(handles.pushbutton_dianya,'enable','off');
+        set(handles.pushbutton_jiediandianya,'enable','off');
+        set(handles.radiobutton_daishushi,'enable','off');
+        set(handles.radiobutton_mojiaoshi,'enable','off');
+        set(handles.oput_l,'enable','off');
+        set(handles.oput_dijiye,'enable','off');
+        set(handles.oput_gongjiye,'enable','off');
+        set(handles.oput_r,'enable','off');
+        set(handles.oput_pop,'enable','off');
+        set(handles.pinlv,'value',0);
+        set(handles.jiaopinlv,'value',1);
+        set(handles.radiobutton_daishushi,'value',1);
+        set(handles.radiobutton_mojiaoshi,'value',0);
+    end
+
+    if ischar(FileName)
+        str = FileName;
+        FileName = cell(0);
+        FileName{1,1} = str;
+    end
+
+    num = length(FileName);
+    X = cell(0);
+    
+    for k = 1 : num
+        if strfind(FileName{1,k},'.txt')
+            newpath = strcat(PathName,'\',FileName{1,k});
+            X{1,k} = load(char(newpath));
+        end
+        if strfind(FileName{1,k},'.xlsx')
+            X{1,k} = xlsread([PathName,FileName{1,k}]);
+        end
+    end
+    
+    %载入用户数据
+    circuit_data = data{1,1};
+    %更新X数据
+    system_data.status(1,3) = 1;
+    circuit_data.X = X;
+    data{1,3} = system_data;
+    data{1,1} = circuit_data;
+    set(0,'userdata',data);
+    set(handles.h1_table,'data',X{1,1});
+
+    %产生弹出式菜单项
+    str = {'-请选择页码--'};
+    str1 = '第';
+    str2 = '页';
+
+    for k = 2 : num + 1
+        str{k,1} = strcat(str1,num2str(k-1),str2);
+    end
+    set(handles.input_pop,'string',str);
+    set(handles.oput_pop,'string',str);
+
+
+    %设置使能关系
+    set(handles.edit_zhilu,'enable','inactive');
+    set(handles.edit_jiedian,'enable','inactive');
+    set(handles.pinlv,'enable','on');
+    set(handles.jiaopinlv,'enable','on');
+    set(handles.pushbutton_jisuan,'enable','on');
+    set(handles.input_l,'enable','off');
+    if num == 1
+        set(handles.input_r,'enable','off');
+    else
+        set(handles.input_r,'enable','on');    
+    end
+    set(handles.input_dijiye,'enable','inactive');
+    set(handles.input_gongjiye,'enable','inactive');
+    set(handles.input_pop,'enable','on');
+    set(handles.pushbutton_pinlv,'enable','on');
+    set(handles.pushbutton_jisuan,'enable','off');
+    %显示电路基本参数
+    
+    temp = X{1,1};
+    [n,~] = size(temp); %n为支路数
+    m = max(max(temp(:,3)),max(temp(:,4)));%m为节点数
+    
+    set(handles.edit_zhilu,'String',n);
+    set(handles.edit_jiedian,'String',m);
+
+    %设置翻页控件参数
+    set(handles.input_dijiye,'String',num2str(1));
+    set(handles.input_gongjiye,'String',num2str(num));
+end
+
+end
+% --- Executes on button press in menu_open
+
+function menu_oput_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_oput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%建立导出table
+data = get(0,'userdata');
+system_data = data{1,3};
+status = system_data.status(1,2);
+
+oput_data = data{1,2};
+
+num = length(oput_data);
+[filename,pathname,~] = uiputfile({'*.txt'},'数据另存为');
+if ~isequal(filename,0) 
+    newpath = strcat(pathname,filename);
+    
+    for k = 1 : num
+        eval(['disp_',num2str(k),'=','cell(0);'])
+        eval(['disp_',num2str(k),'=','oput_data{1,k}',';'])
+    end
+
+    for k = 1 : num
+        if strfind(filename,'.txt')
+            eval(['temp=disp_',num2str(k),';'])
+            for l = 1 : 3
+                eval(['temp{1,l}','=[real(temp{1,l}),imag(temp{1,l})];'])
+            end
+            eval(['status=cellwtxt(newpath,temp,k)',';'])
+        end
+    end
+
+    if status ~= 0
+       h = dialog('name','数据导出','position',[900 200 200 70]);
+       uicontrol('style','text','position',[50 40 120 20],'parent',h,'string','数据导出成功!');
+       uicontrol('position',[80 10 50 20],'parent',h,'string','确定','callback','delete(gcf)');
+    end
+    if status == 0
+        errordlg('数据导出失败!','错误!');
+        h = findall(0,'tag','Msgbox_error dialog');
+        h2 = findall(h,'styke','pushbutton');
+        set(h2,'string','确定');
+    end
+    %保存数据
+    system_data.status(1,2) = status;
+    system_data.status(1,1) = 1;
+    data{1,3} = system_data;
+    set(0,'userdata',data);
+end
+
+end
+% --- Executes on button press in menu_oput
+
+function menu_close_Callback(~, ~, ~)
+% hObject    handle to menu_close (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+close(gcf);
+
+end
+% --- Executes on button press in input_l.
+
+function input_l_Callback(hObject, eventdata, handles)
+% hObject    handle to input_l (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%载入数据
+data = get(0,'userdata');
+circuit_data = data{1,1};
+X = circuit_data.X;
+system_data = data{1,3};
+counter = system_data.counter(1,1);
+counter = counter - 1;
+
+system_data.counter(1,1) = counter;%更新counter
+data{1,3} = system_data;
+set(0,'userdata',data);
+
+set(handles.h1_table,'data',X{1,counter});%更新uitalbe
+
+%设置使能
+if counter == 1
+    set(hObject,'enable','off');
+    set(handles.input_r,'enable','on');
+elseif counter ~= 1
+    set(hObject,'enable','on');
+    set(handles.input_r,'enable','on');
+end
+
+%显示电路参数
+temp = X{1,counter};
+[n,~] = size(temp); %n为支路数
+m = max(max(temp(:,3)),max(temp(:,4)));%m为节点数
+
+set(handles.edit_zhilu,'String',n);
+set(handles.edit_jiedian,'String',m);
+
+%设置翻页参数
+set(handles.input_dijiye,'String',num2str(counter));
+set(handles.input_gongjiye,'String',num2str(length(X)));
+
+end
+% --- Executes on button press in input_r.
+
+function input_r_Callback(hObject, eventdata, handles)
+% hObject    handle to input_r (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%载入数据
+data = get(0,'userdata');
+circuit_data = data{1,1};
+X = circuit_data.X;
+num = length(X);
+system_data = data{1,3};
+counter = system_data.counter(1,1);
+counter = counter + 1;
+
+system_data.counter(1,1) = counter;%更新counter
+data{1,3} = system_data;
+set(0,'userdata',data);
+
+set(handles.h1_table,'data',X{1,counter});%更新uitalbe
+
+%设置使能
+if counter == num
+    set(hObject,'enable','off');
+    set(handles.input_l,'enable','on');
+else
+    set(hObject,'enable','on');
+    set(handles.input_l,'enable','on');
+end
+
+%显示电路参数
+temp = X{1,counter};
+[n,~] = size(temp); %n为支路数
+m = max(max(temp(:,3)),max(temp(:,4)));%m为节点数
+
+set(handles.edit_zhilu,'String',n);
+set(handles.edit_jiedian,'String',m);
+
+%设置翻页参数
+set(handles.input_dijiye,'String',num2str(counter));
+set(handles.input_gongjiye,'String',num2str(num));
+
+end
+
+function input_dijiye_Callback(hObject, eventdata, handles)
+% hObject    handle to input_dijiye (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of input_dijiye as text
+%        str2double(get(hObject,'String')) returns contents of input_dijiye as a double
+end
+
+% --- Executes during object creation, after setting all properties.
+function input_dijiye_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to input_dijiye (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+end
+
+function input_gongjiye_Callback(hObject, eventdata, handles)
+% hObject    handle to input_gongjiye (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of input_gongjiye as text
+%        str2double(get(hObject,'String')) returns contents of input_gongjiye as a double
+
+end
+% --- Executes during object creation, after setting all properties.
+
+function input_gongjiye_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to input_gongjiye (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+end
+% --- Executes on button press in oput_l.
+
+function oput_l_Callback(hObject, eventdata, handles)
+% hObject    handle to oput_l (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%载入数据
+data = get(0,'userdata');
+system_data = data{1,3};
+counter = system_data.counter(1,2);
+counter = counter - 1;
+trigger = system_data.trigger;
+
+oput_data = data{1,2};
+disp_data = oput_data{1,counter};
+
+system_data.counter(1,2) = counter;%更新counter
+data{1,3} = system_data;
+set(0,'userdata',data);
+
+if trigger(1,3) == 1
+    if trigger(1,2) == 1
+        set(handles.h2_table,'data',disp_data{1,1});%更新uitalbe
+    end
+    if trigger(1,2) == 2
+        set(handles.h2_table,'data',disp_data{1,2});%更新uitalbe
+    end
+    if trigger(1,2) == 3
+        set(handles.h2_table,'data',disp_data{1,3});%更新uitalbe
+    end
+end
+
+if trigger(1,3) == 2
+    if trigger(1,2) == 1
+        set(handles.h2_table,'data',disp_data{1,4});%更新uitalbe
+    end
+    if trigger(1,2) == 2
+        set(handles.h2_table,'data',disp_data{1,5});%更新uitalbe
+    end
+    if trigger(1,2) == 3
+        set(handles.h2_table,'data',disp_data{1,6});%更新uitalbe
+    end
+end
+
+%设置使能
+if counter == 1
+    set(hObject,'enable','off');
+    set(handles.oput_r,'enable','on')
+else
+    set(hObject,'enable','on');
+    set(handles.oput_r,'enable','on')
+end
+
+%设置翻页参数
+set(handles.oput_dijiye,'String',num2str(counter));
+set(handles.oput_gongjiye,'String',num2str(length(oput_data)));
+
+end
+% --- Executes on button press in oput_r.
+
+function oput_r_Callback(hObject, eventdata, handles)
+% hObject    handle to oput_r (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%载入数据
+data = get(0,'userdata');
+system_data = data{1,3};
+counter = system_data.counter(1,2);
+counter = counter + 1;
+trigger = system_data.trigger;
+
+oput_data = data{1,2};
+disp_data = oput_data{1,counter};
+
+system_data.counter(1,2) = counter;%更新counter
+data{1,3} = system_data;
+set(0,'userdata',data);
+
+if trigger(1,3) == 1
+    if trigger(1,2) == 1
+        set(handles.h2_table,'data',disp_data{1,1});%更新uitalbe
+    end
+    if trigger(1,2) == 2
+        set(handles.h2_table,'data',disp_data{1,2});%更新uitalbe
+    end
+    if trigger(1,2) == 3
+        set(handles.h2_table,'data',disp_data{1,3});%更新uitalbe
+    end
+end
+
+if trigger(1,3) == 2
+    if trigger(1,2) == 1
+        set(handles.h2_table,'data',disp_data{1,4});%更新uitalbe
+    end
+    if trigger(1,2) == 2
+        set(handles.h2_table,'data',disp_data{1,5});%更新uitalbe
+    end
+    if trigger(1,2) == 3
+        set(handles.h2_table,'data',disp_data{1,6});%更新uitalbe
+    end
+end
+
+%设置使能
+if counter == length(oput_data)
+    set(hObject,'enable','off');
+    set(handles.oput_l,'enable','on')
+else
+    set(hObject,'enable','on');
+    set(handles.oput_l,'enable','on')
+end
+
+%设置翻页参数
+set(handles.oput_dijiye,'String',num2str(counter));
+set(handles.oput_gongjiye,'String',num2str(length(oput_data)));
+
+
+end
+
+function oput_dijiye_Callback(hObject, eventdata, handles)
+% hObject    handle to oput_dijiye (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of oput_dijiye as text
+%        str2double(get(hObject,'String')) returns contents of oput_dijiye as a double
+end
+% --- Executes during object creation, after setting all properties.
+
+function oput_dijiye_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to oput_dijiye (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+end
+
+function oput_gongjiye_Callback(hObject, eventdata, handles)
+% hObject    handle to oput_gongjiye (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of oput_gongjiye as text
+%        str2double(get(hObject,'String')) returns contents of oput_gongjiye as a double
+
+end
+% --- Executes during object creation, after setting all properties.
+
+function oput_gongjiye_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to oput_gongjiye (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+end
+% --- Executes on selection change in input_pop.
+
+function input_pop_Callback(hObject, eventdata, handles)
+% hObject    handle to input_pop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns input_pop contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from input_pop
+%获取指定的数据页数
+if get(hObject,'value') > 1
+    value = get(hObject,'value')-1;
+     %载入用户数据
+     data = get(0,'userdata');
+     circuit_data = data{1,1};
+     X = circuit_data.X;
+     num = length(X);
+
+     system_data = data{1,3};
+     counter = value;
+     system_data.counter(1,1) = counter;
+     data{1,3} = system_data;
+     set(0,'userdata',data);
+
+     set(handles.h1_table,'data',X{1,value});
+
+    %设置翻页参数
+    set(handles.input_dijiye,'String',num2str(value));
+    set(handles.input_gongjiye,'String',num2str(num));
+    
+    if num == 1
+        set(handles.input_l,'enable','off');
+        set(handles.input_r,'enable','off');
+    else
+        %设置使能
+        if value == 1
+            set(handles.input_l,'enable','off');
+            set(handles.input_r,'enable','on');
+        elseif value == num
+            set(handles.input_r,'enable','off');
+            set(handles.input_l,'enable','on');
+        else
+            set(handles.input_l,'enable','on');
+            set(handles.input_r,'enable','on');
+        end
+    end
+    %设置电路参数
+    %显示电路参数
+    temp = X{1,value};
+    [n,~] = size(temp); %n为支路数
+    m = max(max(temp(:,3)),max(temp(:,4)));%m为节点数
+
+    set(handles.edit_zhilu,'String',n);
+    set(handles.edit_jiedian,'String',m);
+end
+
+end
+% --- Executes during object creation, after setting all properties.
+
+function input_pop_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to input_pop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+end
+% --- Executes on selection change in oput_pop.
+
+function oput_pop_Callback(hObject, eventdata, handles)
+% hObject    handle to oput_pop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns oput_pop contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from oput_pop
+if get(hObject,'value') > 1
+    value = get(hObject,'value')-1;
+     %载入用户数据
+    data = get(0,'userdata');
+    system_data = data{1,3};
+    trigger = system_data.trigger;
+    counter = value;
+    system_data.counter(1,2) = counter;
+    data{1,3} = system_data;
+    set(0,'userdata',data);
+
+    oput_data = data{1,2};
+    disp_data = oput_data{1,value};
+
+    if trigger(1,3) == 1
+        if trigger(1,2) == 1
+            set(handles.h2_table,'data',disp_data{1,1});
+        end
+        if trigger(1,2) == 2
+            set(handles.h2_table,'data',disp_data{1,2});
+        end
+        if trigger(1,2) == 3
+            set(handles.h2_table,'data',disp_data{1,3});
+        end
+    end
+
+    if trigger(1,3) == 2
+        if trigger(1,2) == 1
+            set(handles.h2_table,'data',disp_data{1,4});
+        end
+        if trigger(1,2) == 2
+            set(handles.h2_table,'data',disp_data{1,5});
+        end
+        if trigger(1,2) == 3
+            set(handles.h2_table,'data',disp_data{1,6});
+        end
+    end
+
+    %设置翻页参数
+    set(handles.oput_dijiye,'String',num2str(value));
+    set(handles.oput_gongjiye,'String',num2str(length(oput_data)));
+    
+    if length(oput_data) == 1
+        set(handles.oput_l,'enable','off');
+        set(handles.oput_r,'enable','off');
+    else        
+        %设置使能
+        if value == 1
+            set(handles.oput_l,'enable','off');
+            set(handles.oput_r,'enable','on');
+        elseif value == length(oput_data)
+            set(handles.oput_r,'enable','off');
+            set(handles.oput_l,'enable','on');
+        else
+            set(handles.oput_l,'enable','on');
+            set(handles.oput_r,'enable','on');
+        end
+    end
+
+end
+
+end
+% --- Executes during object creation, after setting all properties.
+
+function oput_pop_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to oput_pop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+end
+
+function pushbutton_pinlv_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_pinlv (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%载入系统数据
+data = get(0,'userdata');
+system_data = data{1,3};
+status = system_data.status(1,4);
+
+[FileName,PathName] = uigetfile({'*.txt';'*.xlsx'},'导入数据','multiselect','off');
+if ~isequal(FileName,0)     
+
+    if status == 1
+        %初始化系统参数
+        output_data = cell(0);%建立输出数据单元矩阵
+        data{1,2} = output_data;
+
+        system_data.trigger = zeros(1,3);%建立系统按钮单元数组
+        system_data.counter(1,2) = 1;%输出计数器更新数据
+        system_data.trigger(1,2) = 1;%输出选择
+        system_data.trigger(1,3) = 1;%模式选择
+        system_data.status = [0,0,0,0];%三个状态分别是导出按钮状态，导出成功状态，数据导入按钮状态，频率导入状态按钮
+
+        data{1,3} = system_data;
+        set(0,'userdata',data);%将数据载入根对象的‘userdata’中
+
+        %初始化控件使能
+        h2_table = uitable('parent',handles.uipanel_shuchu,'position',[13,10,270,280],'columnname',...
+            {'代数式'},'columneditable',false,'columnwidth',{200},'fontsize',12);
+        handles.h2_table = h2_table;
+        guidata(hObject,handles);
+        set(handles.pushbutton_dianliu,'backgroundcolor',[0.94 0.94 0.94]);
+        set(handles.pushbutton_dianya,'backgroundcolor',[0.94 0.94 0.94]);
+        set(handles.pushbutton_jiediandianya,'backgroundcolor',[0.94 0.94 0.94]);
+        set(handles.pushbutton_jisuan,'enable','off');
+        set(handles.pushbutton_dianliu,'enable','off');
+        set(handles.pushbutton_dianya,'enable','off');
+        set(handles.pushbutton_jiediandianya,'enable','off');
+        set(handles.menu_oput,'enable','off');
+        set(handles.pushbutton_jisuan,'enable','on');
+        set(handles.radiobutton_daishushi,'value',1);
+        set(handles.radiobutton_mojiaoshi,'value',0);
+    end
+
+    Y = [];
+    if strfind(FileName,'.txt')
+        newpath = strcat(PathName,FileName);
+        Y = load(char(newpath));
+    end
+    if strfind(FileName,'.xlsx')
+        Y = xlsread([PathName,FileName]);
+    end
+   
+    %载入用户数据
+    trigger = system_data.trigger;
+    circuit_data = data{1,1};
+    X = circuit_data.X;
+    num = length(X);
+
+    [c,d] = size(Y);
+    Y = reshape(Y,1,c*d);
+    len = length(Y);
+    if num < len
+        errordlg('频率个数与数据不匹配！','警告！');
+        Y = [];
+    end
+    if num > len
+        a = num - len;
+        for k = 1 : a
+            Y(1,len+k) = 0;
+        end
+        if trigger(1,1) == 1
+            Y = Y.*2*pi;
+        end
+        circuit_data.frequency = Y;
+    end
+    if num == len
+        if trigger(1,1) == 1
+            Y = Y.*2*pi;
+        end
+        circuit_data.frequency = Y;
+    end
+    set(handles.pushbutton_jisuan,'enable','on');
+
+    %更新系统数据
+    system_data.status(1,4) = 1;
+    data{1,3} = system_data;
+    data{1,1} = circuit_data;
+    set(0,'userdata',data);
+end
+end
+% --- Executes on button press in pushbutton_pinlv
+
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+data = get(0,'userdata');
+oput_data = data{1,2};
+system_data = data{1,3};
+call = system_data.status(1,1);
+status = system_data.status(1,2);
+
+if ~isempty(oput_data) && call == 0 && status == 0
+    button =questdlg('保存数据吗?','保存数据吗?','Yes','No','Yes');
+    if strcmp(button,'Yes')
+        f = @menu_oput_Callback;
+        f(hObject, eventdata, handles);
+        data = get(0,'userdata');
+        system_data = data{1,3};
+        status = system_data.status(1,2);
+        if status == 1
+            delete(hObject);
+        end
+        if status == 0
+            warndlg('警告!','保存失败!');
+            button_1 = questdlg('退出?','确认退出吗?','Yes','No','Yes');
+            if strcmp(button_1,'Yes')
+                delete(hObject);
+            end
+        end
+    end;
+end
+
+delete(hObject);
+
+end
+% --- Executes on button press in figure1_CloseRequestFcn
+
+function about1_Callback(hObject, eventdata, handles)
+% hObject    handle to about1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+h0 = figure('menubar','none','numbertitle','off','position',[800,150,900,400],'name','关于我们');
+h1 = uicontrol('parent',h0,'string','关闭','position',[750,30,50,20],'callback','delete(gcf)');
+h3_table = uitable('parent',h0,'position',[20,70,850,300],'columnname',...
+    {'项目','内容'},'columneditable',[false,false],'columnwidth',{120,700},'fontsize',12);
+set(h3_table,'data',{'程序名称','大规模稳态电路分析';'程序版本','2.0（Build  2016-4-15）';'作者','邓凯 何州 周瑞强';'联系方式','13920283976@163.com';'M文件适用版本','matlab 8.4.0.150421 (R2014b) 及以上版本';...
+    '操作系统',' Microsoft Windows 10 家庭中文版 Version 10.0 (Build 10240)';'Java版本','Java 1.7.0_11-b21 with Oracle Corporation Java HotSpot(TM) 64-Bit Server VM mixed mode';'适用系统','windowsXP及以上版本'});
+
+end
+% --- EXecutes on button press in about1
+
+function help_Callback(hObject, eventdata, handles)
+% hObject    handle to help (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+h0 = figure('menubar','none','numbertitle','off','position',[800,150,900,400],'name','帮助文档','defaultuicontrolfontsize',15);
+
+h_table = uitable('parent',h0,'position',[20,70,850,300],'columnwidth',{790},'fontsize',12,'columnname',{});
+
+h1 = uicontrol('parent',h0,'string','关闭','position',[750,30,50,20],'callback','delete(gcf)','fontsize',8);
+
+set(h_table,'data',{'                                     本程序为基于MATLAB的大型稳态电路分析程序,相关使用说明如下:';...
+    '1、	本程序求解大型稀疏矩阵基于GMRES函数，求解的精度控制在1e-15内；';...
+    '2、	本程序可实现多数据导入导出；';...
+    '3、 参数矩阵和频率矩阵的书写格式详见使用文档；';...
+    '4、 对于多份数据建议将Excel转换为TXT格式输入以加速程序运行；';...
+    '5、 GUI界面中的显示结果会由于格式问题在形式上稍有不同，准确结果请以导出的数据为准；';...
+    '6、 由于MATLAB程序的可移植性较差，发布后不稳定，故该程序的最佳运行环境为MATLAB2014b及以上版本.';'任何由版本产生的错误请联系作者；';...
+    [];'更多疑问请通过邮件(13920283976@163.com)与作者在线交流'});
+
+end
+% --- Executes on button press in help
+function about_Callback(hObject, eventdata, handles)
+% hObject    handle to about (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+end
+% --- Executes on button press in about
+function user_document_Callback(hObject, eventdata, handles)
+% hObject    handle to user_document (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+temp = fullfile(cd,'UserDocument.docx');
+web(temp);
+
+end
+% --- Executes on button press in user_document
